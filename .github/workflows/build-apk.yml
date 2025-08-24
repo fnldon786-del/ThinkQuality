@@ -1,0 +1,51 @@
+name: Build ThinkQuality APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: |
+          npm install -g pnpm
+          pnpm install
+
+      - name: Build Next.js
+        run: pnpm build
+
+      - name: Install Capacitor + Android
+        run: |
+          pnpm add -D @capacitor/core @capacitor/cli @capacitor/android
+          npx cap init "ThinkQuality" "com.thinkquality.app" --web-dir=out
+          npx cap add android
+          npx cap copy android
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Build APK
+        run: |
+          cd android
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: ThinkQuality-v1.0.0
+          path: android/app/build/outputs/apk/debug/app-debug.apk
